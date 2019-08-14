@@ -15,35 +15,62 @@
             <rulemailer>
                 <class>KL_Rulemailer_Model</class>
             </rulemailer>
+            <core>
+                <rewrite>
+                    <email_template>KL_Rulemailer_Model_Email_Template</email_template>
+                </rewrite>
+            </core>
         </models>
         <events>
-            <customer_address_save_after>
+            <checkout_cart_save_after>
+                <observers>
+                    <cart_save_after_handler>
+                        <type>model</type>
+                        <class>rulemailer/observer</class>
+                        <method>processCart</method>
+                        <args></args>
+                    </cart_save_after_handler>
+                </observers>
+            </checkout_cart_save_after>
+            <customer_save_after>
                 <observers>
                     <customer_save_after_handler>
                         <type>model</type>
                         <class>rulemailer/observer</class>
-                        <method>addressUpdate</method>
+                        <method>processCustomer</method>
                         <args></args>
                     </customer_save_after_handler>
                 </observers>
-            </customer_address_save_after>
+            </customer_save_after>
             <newsletter_subscriber_save_commit_after>
                 <observers>
                     <newsletter_subscriber_save_before_handler>
                         <type>model</type>
                         <class>rulemailer/observer</class>
-                        <method>manageSubscription</method>
+                        <method>processSubscriber</method>
                         <args></args>
                     </newsletter_subscriber_save_before_handler>
                 </observers>
             </newsletter_subscriber_save_commit_after>
         </events>
     </global>
-    <phpunit>
-        <suite>
-            <modules>
-                <KL_Rulemailer/>
-            </modules>
-        </suite>
-    </phpunit>
+    <crontab>
+        <jobs>
+            <export_data_to_rule_mailer>
+                <schedule>
+                    <cron_expr>*/5 * * * *</cron_expr>
+                </schedule>
+                <run><model>rulemailer/export_manager::exportData</model></run>
+            </export_data_to_rule_mailer>
+        </jobs>
+    </crontab>
+    <default>
+        <kl_rulemailer_settings>
+            <general>
+                <module_enabled>1</module_enabled>
+                <logging>1</logging>
+                <transactional>0</transactional>
+            </general>
+        </kl_rulemailer_settings>
+    </default>
 </config>

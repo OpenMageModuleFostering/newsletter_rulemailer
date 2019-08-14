@@ -1,6 +1,18 @@
 <?php
+/**
+ * RuleMailer
+ */
+
+/**
+ * Data helper
+ */
 class KL_Rulemailer_Helper_Data extends Mage_Core_Helper_Abstract
 {
+    /**
+     * Check if the system is running on an old PHP version
+     *
+     * @return bool
+     */
     public function isOldPhpVersion()
     {
         /**

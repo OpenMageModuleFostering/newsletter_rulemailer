@@ -27,22 +27,22 @@
                             <show_in_store>1</show_in_store>
                             <comment><![CDATA[Your secret API key.]]></comment>
                         </key>
-                        <list_id translate="label comment">
-                            <label>List</label>
+                        <transactional translate="label comment">
+                            <label>Enable transactional</label>
                             <frontend_type>select</frontend_type>
-                            <sort_order>20</sort_order>
-                            <source_model>rulemailer/source_list</source_model>
+                            <sort_order>30</sort_order>
+                            <source_model>adminhtml/system_config_source_yesno</source_model>
                             <show_in_default>1</show_in_default>
                             <show_in_website>1</show_in_website>
                             <show_in_store>1</show_in_store>
                             <comment>
-                                <![CDATA[A valid API key must be present before being able to choose a list.]]>
+                                <![CDATA[Send transactional emails with RuleMailer.]]>
                             </comment>
-                        </list_id>
+                        </transactional>
                         <logging translate="label comment">
                             <label>Enable logging</label>
                             <frontend_type>select</frontend_type>
-                            <sort_order>30</sort_order>
+                            <sort_order>40</sort_order>
                             <source_model>adminhtml/system_config_source_yesno</source_model>
                             <show_in_default>1</show_in_default>
                             <show_in_website>1</show_in_website>

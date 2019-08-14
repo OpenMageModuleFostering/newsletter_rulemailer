@@ -1,14 +1,30 @@
 <?php
 
-/**
- * Class KL_Rulemailer_Model_Observer
- */
-class KL_Rulemailer_Model_Observer extends KL_Rulemailer_Model_Abstract
+class KL_Rulemailer_Model_Observer
 {
+    const CART_IN_PROGRESS_TAG = "CartInProgress";
+    const NEWSLETTER_TAG = "Newsletter";
+    const COMPLETE_ORDER_TAG = "Order";
+
+    /**
+     * @var null
+     */
+    private $apiSubscriber;
+
+    /**
+     * @param null $apiSubscriber
+     */
+    public function __construct($apiSubscriber = null)
+    {
+        $this->apiSubscriber = $apiSubscriber;
+        $this->fieldsBuilder = new KL_Rulemailer_Model_Export_FieldsBuilder;
+    }
+
     /**
      * Function for handling observer logging
      *
      * @param mixed $data
+     *
      * @return void
      */
     private function logData($data)
@@ -30,6 +46,21 @@ class KL_Rulemailer_Model_Observer extends KL_Rulemailer_Model_Abstract
         }
     }
 
+    public function processCart(Varien_Event_Observer $observer)
+    {
+        if (Mage::getSingleton('customer/session')->isLoggedIn()) {
+            $customer = Mage::getSingleton('customer/session')->getCustomer();
+            $quote = $observer->getEvent()->getCart()->getQuote();
+
+            $fields = array_merge(
+                $this->fieldsBuilder->extractCustomerFields($customer),
+                $this->fieldsBuilder->extractCartFields($quote)
+            );
+
+            $this->addSubscriber($customer->getEmail(), array(self::CART_IN_PROGRESS_TAG), $fields, true, true, true);
+        }
+    }
+
     /**
      * Manage subscription
      *
@@ -37,7 +68,7 @@ class KL_Rulemailer_Model_Observer extends KL_Rulemailer_Model_Abstract
      *
      * @return Varien_Event_Observer
      */
-    public function manageSubscription(Varien_Event_Observer $observer)
+    public function processSubscriber(Varien_Event_Observer $observer)
     {
         try {
             $event = $observer->getEvent();
@@ -65,12 +96,9 @@ class KL_Rulemailer_Model_Observer extends KL_Rulemailer_Model_Abstract
                     /**
                      * Add new subscriber
                      */
-                    $this->addSubscriber($dummyCustomer, array());
+                    $this->addSubscriber($dummyCustomer, array('newsletter'), array());
                 }
             } else {
-                /**
-                 * Customer was found
-                 */
 
                 /**
                  * Load customer object
@@ -81,19 +109,14 @@ class KL_Rulemailer_Model_Observer extends KL_Rulemailer_Model_Abstract
                     // Fetch address
                     $addressId = $customer->getDefaultBillingAddress();
 
-                    if (is_object($addressId)) {
-                        $addressId = $addressId->getId();
-                        $fields = Mage::getModel('customer/address')->load($addressId)->getData();
-                    } else {
-                        $fields = array();
-                    }
+                    $fields = $this->fieldsBuilder->extractCustomerFields($customer);
                     // Add or update
-                    $this->addSubscriber($customer, $fields);
+                    $this->addSubscriber($customer, array("newsletter"), $fields);
 
                 } else {
                     // Remove
                     $this->logData("Removing subscriber " . $customer->getData('email'));
-                    $this->getApiSubscriber()->delete($customer->getData('email'));
+                    $this->removeSubscriber($customer);
                 }
             }
         } catch (Exception $e) {
@@ -107,12 +130,12 @@ class KL_Rulemailer_Model_Observer extends KL_Rulemailer_Model_Abstract
     }
 
     /**
-     * Address update
+     * Create RULE subscriber or update existing on customer save
      *
      * @param Varien_Event_Observer $observer
      * @return Varien_Event_Observer
      */
-    public function addressUpdate(Varien_Event_Observer $observer)
+    public function processCustomer(Varien_Event_Observer $observer)
     {
         try {
             // Fetch observer data
@@ -122,8 +145,7 @@ class KL_Rulemailer_Model_Observer extends KL_Rulemailer_Model_Abstract
                 ->getData();
 
             // Load customer object
-            $customer = Mage::getModel('customer/customer')->load($data['parent_id']);
-
+            $customer = $observer->getCustomer();
             // Update if it's an object
             if (is_object($customer)) {
 
@@ -132,16 +154,15 @@ class KL_Rulemailer_Model_Observer extends KL_Rulemailer_Model_Abstract
 
                 // Make sure we'd like to receive newsletters
                 if ($newsletter->getData('subscriber_status') == '1') {
-
                     // Set the data fields of the address
                     $fields = Mage::getModel('customer/address')->load($data['entity_id'])->getData();
 
+                    $this->logData(json_encode($fields));
                     // Add or update the subscriber
-                    $this->addSubscriber($customer, $fields);
-
+                    $this->addSubscriber($customer, array(), $fields);
                 } else {
                     $this->logData("Removing subscriber " . $customer->getData('email'));
-                    $this->getApiSubscriber()->delete($customer->getData('email'));
+                    $this->removeSubscriber($customer);
                 }
             }
         } catch (Exception $e) {
@@ -152,53 +173,56 @@ class KL_Rulemailer_Model_Observer extends KL_Rulemailer_Model_Abstract
     }
 
     /**
-     * Get API subscriber model.
+     * Get API subscriber model
      *
      * @return KL_Rulemailer_Model_Api_Subscriber
      */
     private function getApiSubscriber()
     {
-        return Mage::getSingleton('rulemailer/api_subscriber');
+        return $this->apiSubscriber ? : Mage::getModel('rulemailer/api_subscriber', null);
     }
 
     /**
      * Function for adding or updating subscriber
      *
-     * @param $customer
-     * @param $fields
-     * @return bool
+     * @param Mage_Customer_Model_Customer $customer
+     * @param array                        $tags
+     * @param array                        $fields
+     *
+     * @return void
      */
-    public function addSubscriber($customer, $fields = array())
+    public function addSubscriber($customer, array $tags, $fields = null)
     {
+        $response = $this->getApiSubscriber()->create($customer->getData('email'), $tags, $fields, true, true, true);
 
-        // Add the user
-        $response = $this->getApiSubscriber()->subscribe($customer->getData('email'), $fields);
-
-        if (!$response) {
-            return FALSE;
-        }
-
-        // Try to update if something went wrong
-        if (intval($response->getData('error_code')) > 0) {
-            // Log the error message
-            $this->logData("When adding subscriber, get code error code #" . $response->getData('error_code'));
-
-            // Try to update
-            $response = $this->getApiSubscriber()->update($customer->getData('email'), $fields);
-
-            // Check if we succeeded this time
-            if (intval($response->getData('error_code')) > 0) {
-                // Log the error message
-                $this->logData("When updating subscriber, get code error code #" . $response->getData('error_code'));
-                return FALSE;
-            } else {
-                $this->logData("Updated subscriber " . $customer->getData('email'));
-                return TRUE;
+        if ($response->isError()) {
+            $this->logData("When adding subscriber (" . $customer->getData('email') . "), get code error: " . $response->getError());
+            $this->logData('Trying to add tag...');
+            $response = $this->getApiSubscriber()->addTag($tags, $customer->getData('email'), 'email');
+            if ($response->isError()) {
+                $this->logData("When adding tag to subscriber (" . $customer->getData('email') . "), get code error: " . $response->getError());
             }
-        } else {
-            $this->logData("Added new subscriber " . $customer->getData('email'));
-            return TRUE;
         }
+
+        $this->logData("Added new subscriber " . $customer->getData('email'));
     }
 
+
+    /**
+     * Function for adding or updating subscriber
+     *
+     * @param Mage_Customer_Model_Customer $customer
+     *
+     * @return void
+     */
+    public function removeSubscriber($customer)
+    {
+        $response = $this->getApiSubscriber()->removeTag('newsletter', $customer->getData('email'));
+
+        if ($response->isError()) {
+           return  $this->logData("When removing subscriber tag (" . $customer->getData('email') . "), got code error: " . $response->getError());
+        }
+
+        $this->logData("Removed tag newsletter from subscriber " . $customer->getData('email'));
+    }
 }

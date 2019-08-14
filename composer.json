@@ -1,13 +1,13 @@
 {
     "name": "OpenMageModuleFostering/Newsletter_RuleMailer",
     "type": "magento-module",
-    "license": "Open-Software-License-(OSL)",
+    "license": "osl",
     "homepage": "",
-    "description": "Let your customers subscribe to your newsletter automatically with full integration to RuleMailer.",
+    "description": "Rule Mailer integration",
     "authors": [
     {
-        "name": "RuleCom",
-        "email": "sam.jahanfar@rule.se"
+        "name": "Stanislav",
+        "email": "stanislav.kalashnik@rule.se"
     }
 ],
     "suggest": {
