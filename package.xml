@@ -1,0 +1,28 @@
+<?xml version="1.0"?>
+<package>
+    <name>Newsletter_RuleMailer</name>
+    <version>1.0.0</version>
+    <stability>stable</stability>
+    <license uri="http://opensource.org/licenses/osl-3.0.php">Open Software License (OSL)</license>
+    <channel>community</channel>
+    <extends/>
+    <summary>Let your customers subscribe to your newsletter automatically with full integration to RuleMailer.</summary>
+    <description>This plugin enables signup for your customers to your RuleMailer newsletter service. &#xD;
+&#xD;
+It' super easy to setup up, all you need is your RuleMailer API key. &#xD;
+&#xD;
+Once the plugin is setup your visitors will be able to signup for your newsletter everywhere on your site. &#xD;
+&#xD;
+In the checkout, your customers will have the choice to subscribe to your newsletter. And the extension will automatically collect all information and send it to RuleMailer. &#xD;
+&#xD;
+You can read more about the &lt;a href="http://www.rulemailer.se"&gt;RuleMailer newsletter here.&lt;/a&gt;</description>
+    <notes>Just enter your RuleMailer API key and you are good to go! &#xD;
+&#xD;
+You can read more here: http://www.rulemailer.se/support/manual/#e-handel-nyhetsbrev-magento</notes>
+    <authors><author><name>RuleCom</name><user>rulecom</user><email>sam.jahanfar@rule.se</email></author></authors>
+    <date>2013-11-01</date>
+    <time>09:28:26</time>
+    <contents><target name="magecommunity"><dir name="KL"><dir name="Rulemailer"><dir name="Helper"><file name="Data.php" hash="045299110074915c748aa60e32420326"/></dir><dir name="Model"><file name="Abstract.php" hash="af0e33b5bdeb511ba9bf187bc82074db"/><dir name="Api"><dir name="List"><dir name="Custom"><file name="Fields.php" hash="de8fd49655ef5eb1f30ef0c7d91aa457"/></dir></dir><file name="Lists.php" hash="0c3b8e64a20777da3ca30ede2bd15a8a"/><file name="Response.php" hash="22db556bac26052434731a805bf46799"/><file name="Subscriber.php" hash="0d44b8b5787bbb6bdac5e7dd7966fa42"/></dir><file name="Api.php" hash="1518115b3bd9e14fc7246716e541739a"/><file name="Array.php" hash="9c3ba8e6529b08c1aa51ea77afbcf036"/><file name="Config.php" hash="ccbaea025794c91be15dec707b5490ba"/><file name="Observer.php" hash="d3500f32345f521ddd5bdb7720662e00"/><dir name="Source"><file name="List.php" hash="07291171cc6379d9bc0098131befb03e"/></dir></dir><dir name="Test"><file name="Case.php" hash="6d247d0386f931fe4cff8913d1aff29a"/><dir name="Model"><dir name="Api"><file name="Lists.php" hash="356c2d3a5eb9c98f56f646156963b66a"/><file name="Response.php" hash="3a6f91bb1f62dba231efd4ec0d0d2a1c"/><file name="Subscriber.php" hash="c3dfbed1b1ff5486b8a47c2632f63890"/></dir><file name="Api.php" hash="609c1b37250f7360930cce06e5156d54"/><file name="Array.php" hash="73ddb5591c2524484bc59b939b1669cc"/><file name="Config.php" hash="567075089b74c4cb74eacc09daee475f"/><dir name="Source"><file name="List.php" hash="83b2050b46015a2d6837a3fea0ee2111"/></dir></dir><dir name="fixtures"><file name="default.yaml" hash="2fa19abeaa4f915e17c767fbf7eec64f"/></dir></dir><dir name="etc"><file name="adminhtml.xml" hash="83203c043d23f2dc6314aced70189994"/><file name="config.xml" hash="7a5a3f9b4049ee6c9353261947aa2fda"/><file name="system.xml" hash="6f2819bb727fb1602b893b6ecc95585f"/></dir></dir></dir></target><target name="mageetc"><dir name="modules"><file name="KL_RuleMailer.xml" hash=""/></dir></target></contents>
+    <compatible/>
+    <dependencies><required><php><min>5.4.0</min><max>6.0.0</max></php></required></dependencies>
+</package>

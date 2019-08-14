@@ -1,0 +1,204 @@
+<?php
+
+/**
+ * Class KL_Rulemailer_Model_Observer
+ */
+class KL_Rulemailer_Model_Observer extends KL_Rulemailer_Model_Abstract
+{
+    /**
+     * Function for handling observer logging
+     *
+     * @param mixed $data
+     * @return void
+     */
+    private function logData($data)
+    {
+        if (Mage::getSingleton('rulemailer/config')->get('logging') == '1') {
+            // Fetch backtrace
+            $callers = debug_backtrace();
+
+            // Setup caller
+            $caller = $callers[1]['class'] . '::' . $callers[1]['function'];
+
+            // Convert to string of not a string
+            if (!is_string($data)) {
+                $data = var_export($data, TRUE);
+            }
+
+            // Log the entry
+            Mage::log('(' . $caller . ') ' . $data, NULL, 'KL_Rulemailer.log', TRUE);
+        }
+    }
+
+    /**
+     * Manage subscription
+     *
+     * @param Varien_Event_Observer $observer
+     *
+     * @return Varien_Event_Observer
+     */
+    public function manageSubscription(Varien_Event_Observer $observer)
+    {
+        try {
+            $event = $observer->getEvent();
+            $subscriber = $event->getDataObject();
+            $data = $subscriber->getData();
+
+            /**
+             * Check for customer number
+             */
+            if (!isset($data['customer_id']) || $data['customer_id'] == '0' || !$data['customer_id']) {
+                /**
+                 * Make sure a e-mail address was given
+                 */
+                if (isset($data['subscriber_email']) && $data['subscriber_email']) {
+                    /**
+                     * No customer was found, create a dummy customer object
+                     */
+                    $dummyCustomer = Mage::getModel('customer/customer');
+
+                    /**
+                     * Populate the object
+                     */
+                    $dummyCustomer->setEmail($data['subscriber_email']);
+
+                    /**
+                     * Add new subscriber
+                     */
+                    $this->addSubscriber($dummyCustomer, array());
+                }
+            } else {
+                /**
+                 * Customer was found
+                 */
+
+                /**
+                 * Load customer object
+                 */
+                $customer = Mage::getModel('customer/customer')->load($data['customer_id']);
+
+                if ($subscriber->isSubscribed()) {
+                    // Fetch address
+                    $addressId = $customer->getDefaultBillingAddress();
+
+                    if (is_object($addressId)) {
+                        $addressId = $addressId->getId();
+                        $fields = Mage::getModel('customer/address')->load($addressId)->getData();
+                    } else {
+                        $fields = array();
+                    }
+                    // Add or update
+                    $this->addSubscriber($customer, $fields);
+
+                } else {
+                    // Remove
+                    $this->logData("Removing subscriber " . $customer->getData('email'));
+                    $this->getApiSubscriber()->delete($customer->getData('email'));
+                }
+            }
+        } catch (Exception $e) {
+            $this->logData('Exception: ' . $e->getMessage());
+        }
+
+        /**
+         * Nothing more to do
+         */
+        return $observer;
+    }
+
+    /**
+     * Address update
+     *
+     * @param Varien_Event_Observer $observer
+     * @return Varien_Event_Observer
+     */
+    public function addressUpdate(Varien_Event_Observer $observer)
+    {
+        try {
+            // Fetch observer data
+            $data = $observer
+                ->getEvent()
+                ->getDataObject()
+                ->getData();
+
+            // Load customer object
+            $customer = Mage::getModel('customer/customer')->load($data['parent_id']);
+
+            // Update if it's an object
+            if (is_object($customer)) {
+
+                // Check subscription status
+                $newsletter = Mage::getModel('newsletter/subscriber')->loadByCustomer($customer);
+
+                // Make sure we'd like to receive newsletters
+                if ($newsletter->getData('subscriber_status') == '1') {
+
+                    // Set the data fields of the address
+                    $fields = Mage::getModel('customer/address')->load($data['entity_id'])->getData();
+
+                    // Add or update the subscriber
+                    $this->addSubscriber($customer, $fields);
+
+                } else {
+                    $this->logData("Removing subscriber " . $customer->getData('email'));
+                    $this->getApiSubscriber()->delete($customer->getData('email'));
+                }
+            }
+        } catch (Exception $e) {
+            $this->logData('Exception: ' . $e->getMessage());
+        }
+
+        return $observer;
+    }
+
+    /**
+     * Get API subscriber model.
+     *
+     * @return KL_Rulemailer_Model_Api_Subscriber
+     */
+    private function getApiSubscriber()
+    {
+        return Mage::getSingleton('rulemailer/api_subscriber');
+    }
+
+    /**
+     * Function for adding or updating subscriber
+     *
+     * @param $customer
+     * @param $fields
+     * @return bool
+     */
+    public function addSubscriber($customer, $fields = array())
+    {
+
+        // Add the user
+        $response = $this->getApiSubscriber()->subscribe($customer->getData('email'), $fields);
+
+        if (!$response) {
+            return FALSE;
+        }
+
+        // Try to update if something went wrong
+        if (intval($response->getData('error_code')) > 0) {
+            // Log the error message
+            $this->logData("When adding subscriber, get code error code #" . $response->getData('error_code'));
+
+            // Try to update
+            $response = $this->getApiSubscriber()->update($customer->getData('email'), $fields);
+
+            // Check if we succeeded this time
+            if (intval($response->getData('error_code')) > 0) {
+                // Log the error message
+                $this->logData("When updating subscriber, get code error code #" . $response->getData('error_code'));
+                return FALSE;
+            } else {
+                $this->logData("Updated subscriber " . $customer->getData('email'));
+                return TRUE;
+            }
+        } else {
+            $this->logData("Added new subscriber " . $customer->getData('email'));
+            return TRUE;
+        }
+    }
+
+}
