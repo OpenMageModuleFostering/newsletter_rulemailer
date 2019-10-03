@@ -1,16 +1,19 @@
 {
-    "name": "OpenMageModuleFostering/Newsletter_RuleMailer",
+    "name": "OpenMageModuleFostering\/Newsletter_RuleMailer",
     "type": "magento-module",
     "license": "osl",
     "homepage": "",
     "description": "Rule Mailer integration",
     "authors": [
-    {
-        "name": "Stanislav",
-        "email": "stanislav.kalashnik@rule.se"
-    }
-],
+        {
+            "name": "Stanislav",
+            "email": "stanislav.kalashnik@rule.se"
+        }
+    ],
     "suggest": {
-        "magento-hackathon/magento-composer-installer": "*"
-    }
+        "magento-hackathon\/magento-composer-installer": "*"
+    },
+    "keywords": [
+        "openmage-module"
+    ]
 }
